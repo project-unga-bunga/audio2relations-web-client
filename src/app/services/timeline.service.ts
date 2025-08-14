@@ -26,6 +26,16 @@ export class TimelineService {
     this.persist();
   }
 
+  async updateEvent(id: string, updates: Partial<TimelineEvent['payload']>) {
+    const updatedEvents = this.events().map(event => 
+      event.id === id 
+        ? { ...event, payload: { ...event.payload, ...updates } }
+        : event
+    );
+    this.events.set(updatedEvents);
+    this.persist();
+  }
+
   async clear() {
     this.events.set([]);
     this.persist();
