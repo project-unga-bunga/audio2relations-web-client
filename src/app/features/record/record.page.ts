@@ -14,10 +14,17 @@ import { AudioService } from '../../services/audio.service';
       <button (click)="play()" [disabled]="!audioUrl()">Play</button>
       <button (click)="save()" [disabled]="!audioUrl()">Save to Timeline</button>
     </div>
+    <div class="fallback">
+      <label>
+        Fallback (mobile):
+        <input type="file" accept="audio/*" capture (change)="onPick($event)">
+      </label>
+    </div>
     <audio *ngIf="audioUrl()" [src]="audioUrl()" controls></audio>
   `,
   styles: [`
     .controls{display:flex;gap:8px;margin-bottom:12px}
+    .fallback{margin-bottom:12px}
   `]
 })
 export class RecordPage {
@@ -45,6 +52,15 @@ export class RecordPage {
 
   save() {
     this.audio.saveLastRecordingToTimeline();
+  }
+
+  async onPick(ev: Event){
+    const input = ev.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (file){
+      await this.audio.setRecordingFromFile(file);
+      this.audioUrl.set(URL.createObjectURL(file));
+    }
   }
 }
 
