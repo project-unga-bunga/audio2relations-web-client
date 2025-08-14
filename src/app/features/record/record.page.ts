@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioService } from '../../services/audio.service';
+import { StorageService } from '../../services/storage.service';
 
 @Component({
   standalone: true,
@@ -29,12 +30,17 @@ import { AudioService } from '../../services/audio.service';
 })
 export class RecordPage {
   private audio = inject(AudioService);
+  private storage = inject(StorageService);
   isRecording = signal(false);
   audioUrl = signal<string>('');
 
   async start() {
-    await this.audio.startRecording();
-    this.isRecording.set(true);
+    try {
+      await this.audio.startRecording();
+      this.isRecording.set(true);
+    } catch (e) {
+      alert('Brak dostępu do mikrofonu lub wymagana jest przeglądarka/HTTPS. Użyj Fallback poniżej.');
+    }
   }
 
   async stop() {
@@ -42,6 +48,14 @@ export class RecordPage {
     this.isRecording.set(false);
     if (blob) {
       this.audioUrl.set(URL.createObjectURL(blob));
+      // ensure timeline refresh after auto-save
+      setTimeout(() => window.dispatchEvent(new Event('timeline-refresh')), 0);
+      try {
+        const hasHandle = await this.storage.getExportDirHandle();
+        if (!hasHandle) {
+          await this.storage.requestDirectoryAccess();
+        }
+      } catch {}
     }
   }
 
@@ -50,8 +64,15 @@ export class RecordPage {
     if (url) new Audio(url).play();
   }
 
-  save() {
-    this.audio.saveLastRecordingToTimeline();
+  async save() {
+    try {
+      const hasHandle = await this.storage.getExportDirHandle();
+      if (!hasHandle) {
+        await this.storage.requestDirectoryAccess();
+      }
+    } catch {}
+    await this.audio.saveLastRecordingToTimeline();
+    window.dispatchEvent(new Event('timeline-refresh'));
   }
 
   async onPick(ev: Event){

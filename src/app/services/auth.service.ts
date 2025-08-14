@@ -15,7 +15,7 @@ export class AuthService {
   }
 
   async loginGuest() {
-    const guestToken = `guest-${Date.now()}`;
+    const guestToken = 'guest';
     localStorage.setItem(this.storageKey, guestToken);
     this.token.set(guestToken);
     this.userEmail.set('guest');

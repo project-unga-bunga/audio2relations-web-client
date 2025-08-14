@@ -1,5 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { TimelineService } from './timeline.service';
+import { StorageService } from './storage.service';
 
 @Injectable({ providedIn: 'root' })
 export class AudioService {
@@ -7,10 +8,16 @@ export class AudioService {
   private mediaStream: MediaStream | null = null;
   private chunks: Blob[] = [];
   lastRecording = signal<Blob | null>(null);
+  private recorderStartTs: number | null = null;
 
   private timeline = inject(TimelineService);
+  private storage = inject(StorageService);
 
   async startRecording(): Promise<void> {
+    // Must be called from user gesture; on HTTP mobile browsers may block
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('getUserMedia unsupported');
+    }
     this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.mediaRecorder = new MediaRecorder(this.mediaStream);
     this.chunks = [];
@@ -22,24 +29,39 @@ export class AudioService {
       this.mediaStream = null;
     };
     this.mediaRecorder.start();
+    this.recorderStartTs = Date.now();
   }
 
   async stopRecording(): Promise<Blob | null> {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
-    return new Promise(resolve => setTimeout(() => resolve(this.lastRecording()), 0));
+    const finished = await new Promise<Blob | null>(resolve => setTimeout(() => resolve(this.lastRecording()), 0));
+    // Auto-save to timeline and create transcript placeholder
+    if (finished) {
+      const savedAt = this.recorderStartTs ?? Date.now();
+      await this.saveLastRecordingToTimeline();
+      // Create placeholder transcript event to be edited/filled later
+      this.timeline.addEvent({ id: crypto.randomUUID(), type: 'transcript', timestamp: savedAt, payload: { text: '' } });
+    }
+    return finished;
   }
 
-  saveLastRecordingToTimeline(): void {
+  async saveLastRecordingToTimeline(): Promise<void> {
     const blob = this.lastRecording();
     if (!blob) return;
-    this.timeline.addEvent({
+    const blobId = await this.storage.saveBlob(blob);
+    await this.timeline.addEvent({
       id: crypto.randomUUID(),
       type: 'audio',
       timestamp: Date.now(),
-      payload: { blob }
+      payload: { blobRef: blobId }
     });
+    // Also save a copy to a user-visible folder (browser: File System Access API)
+    try {
+      const base = `recording-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      void this.storage.saveAudioToDevice(blob, base);
+    } catch {}
   }
 
   async setRecordingFromFile(file: File){

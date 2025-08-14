@@ -1,6 +1,8 @@
 import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranscriptionService } from '../../services/transcription.service';
+import { TimelineService } from '../../services/timeline.service';
+import { StorageService } from '../../services/storage.service';
 
 @Component({
   standalone: true,
@@ -23,11 +25,21 @@ import { TranscriptionService } from '../../services/transcription.service';
 })
 export class TranscriptionPage {
   private svc = inject(TranscriptionService);
+  private timeline = inject(TimelineService);
+  private storage = inject(StorageService);
   isActive = this.svc.isActive;
   text = this.svc.text;
 
   start(){ this.svc.start(); }
   stop(){ this.svc.stop(); }
+
+  // Placeholder: when text changes to a final chunk, save an event
+  // In real impl. you'd trigger this on final results; simplified here
+  async saveTranscript(){
+    const t = this.text().trim();
+    if (!t) return;
+    this.timeline.addEvent({ id: crypto.randomUUID(), type: 'transcript', timestamp: Date.now(), payload: { text: t } });
+  }
 }
 
 
