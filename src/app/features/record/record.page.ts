@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AudioService } from '../../services/audio.service';
 import { StorageService } from '../../services/storage.service';
 
 @Component({
   standalone: true,
   selector: 'app-record-page',
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="record-container">
       <h2 class="page-title">🎤 Audio Recording</h2>
@@ -46,13 +47,13 @@ import { StorageService } from '../../services/storage.service';
         <p class="fallback-description">
           {{ isMobileDevice() ? 'Użyj natywnego mikrofonu urządzenia:' : 'Na telefonach i niektórych przeglądarkach użyj tej opcji:' }}
         </p>
-        <label class="fallback-label">
-          <input type="file" accept="audio/*" capture="microphone" (change)="onPick($event)" class="fallback-input">
-          <div class="fallback-button">
-            <span class="fallback-btn-icon">🎤</span>
-            <span class="fallback-btn-text">{{ isMobileDevice() ? 'Otwórz natywny mikrofon' : 'Wybierz plik audio lub nagraj' }}</span>
-          </div>
-        </label>
+                 <label class="fallback-label">
+           <input type="file" accept="audio/*" capture="microphone" (change)="onPick($event)" class="fallback-input">
+           <div class="fallback-button" (click)="openNativeRecording()">
+             <span class="fallback-btn-icon">🎤</span>
+             <span class="fallback-btn-text">{{ isMobileDevice() ? 'Otwórz natywny mikrofon' : 'Wybierz plik audio lub nagraj' }}</span>
+           </div>
+         </label>
       </div>
       
       <div class="audio-player" *ngIf="audioUrl()">
@@ -78,6 +79,14 @@ import { StorageService } from '../../services/storage.service';
             <span class="meta-label">Response Time:</span>
             <span class="meta-value">{{ formatTime(serverResponse()?.timestamp) }}</span>
           </div>
+          <div class="response-meta" *ngIf="serverResponse()?.endpoint">
+            <span class="meta-label">Endpoint:</span>
+            <span class="meta-value">{{ serverResponse()?.endpoint }}</span>
+          </div>
+          <div class="response-meta" *ngIf="serverResponse()?.endpoints_tried">
+            <span class="meta-label">Endpoints Tried:</span>
+            <span class="meta-value">{{ serverResponse()?.endpoints_tried?.join(', ') }}</span>
+          </div>
         </div>
       </div>
       
@@ -93,12 +102,15 @@ import { StorageService } from '../../services/storage.service';
       </div>
     </div>
   `,
-  styles: [`
-    .record-container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+     styles: [`
+     .record-container {
+       max-width: 600px;
+       margin: 0 auto;
+       padding: 70px 20px 20px 20px;
+       min-height: 100vh;
+       overflow-y: auto;
+       box-sizing: border-box;
+     }
     
     .page-title {
       color: #d4af37;
@@ -109,28 +121,31 @@ import { StorageService } from '../../services/storage.service';
       text-shadow: 0 2px 4px rgba(212, 175, 55, 0.3);
     }
     
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 30px;
-    }
+         .controls {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+       gap: 12px;
+       margin-bottom: 30px;
+       width: 100%;
+     }
     
-    .control-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 20px 16px;
-      border-radius: 16px;
-      border: 2px solid transparent;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      background: rgba(15, 20, 25, 0.8);
-      color: #e6e6e6;
-      backdrop-filter: blur(10px);
-    }
+         .control-btn {
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       gap: 8px;
+       padding: 16px 12px;
+       border-radius: 16px;
+       border: 2px solid transparent;
+       font-weight: 600;
+       cursor: pointer;
+       transition: all 0.3s ease;
+       background: rgba(15, 20, 25, 0.8);
+       color: #e6e6e6;
+       backdrop-filter: blur(10px);
+       min-height: 80px;
+       justify-content: center;
+     }
     
     .control-btn:hover:not(:disabled) {
       transform: translateY(-2px);
@@ -202,13 +217,15 @@ import { StorageService } from '../../services/storage.service';
       font-size: 0.9rem;
     }
     
-    .fallback-section {
-      background: rgba(15, 20, 25, 0.6);
-      border: 2px solid #d4af37;
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 30px;
-    }
+         .fallback-section {
+       background: rgba(15, 20, 25, 0.6);
+       border: 2px solid #d4af37;
+       border-radius: 16px;
+       padding: 20px;
+       margin-bottom: 30px;
+       width: 100%;
+       box-sizing: border-box;
+     }
     
     .fallback-header {
       display: flex;
@@ -271,13 +288,15 @@ import { StorageService } from '../../services/storage.service';
       font-size: 1rem;
     }
     
-    .audio-player {
-      background: rgba(15, 20, 25, 0.8);
-      border: 2px solid #007bff;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
+         .audio-player {
+       background: rgba(15, 20, 25, 0.8);
+       border: 2px solid #007bff;
+       border-radius: 16px;
+       padding: 20px;
+       margin-bottom: 30px;
+       width: 100%;
+       box-sizing: border-box;
+     }
     
     .player-title {
       color: #007bff;
@@ -292,14 +311,16 @@ import { StorageService } from '../../services/storage.service';
       border-radius: 8px;
     }
 
-    /* Server Response Section */
-    .server-response {
-      background: rgba(15, 20, 25, 0.8);
-      border: 2px solid #6f42c1;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
+         /* Server Response Section */
+     .server-response {
+       background: rgba(15, 20, 25, 0.8);
+       border: 2px solid #6f42c1;
+       border-radius: 16px;
+       padding: 20px;
+       margin-bottom: 30px;
+       width: 100%;
+       box-sizing: border-box;
+     }
 
     .response-header {
       display: flex;
@@ -390,11 +411,14 @@ import { StorageService } from '../../services/storage.service';
       font-size: 0.9rem;
     }
     
-    .status-info {
-      background: rgba(15, 20, 25, 0.6);
-      border-radius: 12px;
-      padding: 16px;
-    }
+         .status-info {
+       background: rgba(15, 20, 25, 0.6);
+       border-radius: 12px;
+       padding: 16px;
+       width: 100%;
+       box-sizing: border-box;
+       margin-bottom: 20px;
+     }
     
     .status-item {
       display: flex;
@@ -420,38 +444,128 @@ import { StorageService } from '../../services/storage.service';
       font-weight: 500;
     }
     
-    @media (max-width: 600px) {
-      .controls {
-        grid-template-columns: 1fr;
-      }
-      
-      .control-btn {
-        flex-direction: row;
-        justify-content: center;
-        padding: 16px;
-      }
-      
-      .btn-icon {
-        font-size: 1.2rem;
-      }
-      
-      .btn-text {
-        font-size: 0.85rem;
-      }
-      
-      .fallback-button {
-        padding: 14px 20px;
-      }
-      
-      .fallback-btn-text {
-        font-size: 0.9rem;
-      }
+                @media (max-width: 768px) {
+         .record-container {
+           padding: 60px 16px 16px 16px;
+           max-width: 100%;
+         }
+       
+       .page-title {
+         font-size: 1.5rem;
+         margin-bottom: 20px;
+       }
+       
+       .controls {
+         grid-template-columns: 1fr;
+         gap: 10px;
+         margin-bottom: 20px;
+       }
+       
+       .control-btn {
+         flex-direction: row;
+         justify-content: center;
+         padding: 14px;
+         min-height: 60px;
+       }
+       
+       .btn-icon {
+         font-size: 1.2rem;
+       }
+       
+       .btn-text {
+         font-size: 0.85rem;
+       }
+       
+       .fallback-section {
+         padding: 16px;
+         margin-bottom: 20px;
+       }
+       
+       .fallback-button {
+         padding: 12px 16px;
+       }
+       
+       .fallback-btn-text {
+         font-size: 0.9rem;
+       }
+       
+       .audio-player {
+         padding: 16px;
+         margin-bottom: 20px;
+       }
+       
+       .server-response {
+         padding: 16px;
+         margin-bottom: 20px;
+       }
 
-      .response-json {
-        font-size: 0.8rem;
-        max-height: 150px;
-      }
-    }
+       .response-json {
+         font-size: 0.8rem;
+         max-height: 150px;
+       }
+       
+       .status-info {
+         padding: 12px;
+         margin-bottom: 16px;
+       }
+     }
+     
+            @media (max-width: 480px) {
+         .record-container {
+           padding: 50px 12px 12px 12px;
+         }
+       
+       .page-title {
+         font-size: 1.3rem;
+         margin-bottom: 16px;
+       }
+       
+       .controls {
+         gap: 8px;
+         margin-bottom: 16px;
+       }
+       
+       .control-btn {
+         padding: 12px;
+         min-height: 50px;
+       }
+       
+       .btn-icon {
+         font-size: 1rem;
+       }
+       
+       .btn-text {
+         font-size: 0.8rem;
+       }
+       
+       .fallback-section {
+         padding: 12px;
+         margin-bottom: 16px;
+       }
+       
+       .fallback-button {
+         padding: 10px 14px;
+       }
+       
+       .fallback-btn-text {
+         font-size: 0.85rem;
+       }
+       
+       .audio-player {
+         padding: 12px;
+         margin-bottom: 16px;
+       }
+       
+       .server-response {
+         padding: 12px;
+         margin-bottom: 16px;
+       }
+       
+       .status-info {
+         padding: 10px;
+         margin-bottom: 12px;
+       }
+     }
   `]
 })
 export class RecordPage {
@@ -463,18 +577,23 @@ export class RecordPage {
   serverResponse = signal<any>(null);
 
   async start() {
+    console.log('🎤 DEBUG: Start recording clicked');
+    
     // Na telefonie zawsze używamy natywnego mikrofonu
     if (this.isMobileDevice()) {
-      // Na mobile nie próbujemy przeglądarki - użytkownik ma fallback
-      console.log('On mobile, use native device microphone option below');
+      console.log('📱 DEBUG: Mobile device detected, opening native recording');
+      this.openNativeRecording();
       return;
     }
     
     try {
+      console.log('🖥️ DEBUG: Desktop device, trying browser microphone');
       await this.audio.startRecording();
       this.isRecording.set(true);
+      console.log('✅ DEBUG: Browser recording started');
     } catch (e) {
-      console.log('Microphone access blocked, use fallback option below');
+      console.log('❌ DEBUG: Microphone access blocked, use fallback option below');
+      console.error('🔍 DEBUG: Error details:', e);
     }
   }
 
@@ -504,62 +623,176 @@ export class RecordPage {
       return;
     }
 
+    console.log('🔍 DEBUG: Starting sendToEndpoint');
+    console.log('📊 DEBUG: Blob info:', {
+      size: blob.size,
+      type: blob.type
+    });
+
     this.isSending.set(true);
     this.serverResponse.set(null);
 
-    try {
-      // Convert blob to base64
-      const arrayBuffer = await blob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    // Lista endpointów do przetestowania
+    const endpoints = [
+      'http://54.37.130.147:8000/test',
+      'http://localhost:8000/test',
+      'http://127.0.0.1:8000/test'
+    ];
 
-      const response = await fetch('http://54.37.130.147/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`🔗 DEBUG: Trying endpoint: ${endpoint}`);
+        
+        // Convert blob to base64
+        console.log('🔄 DEBUG: Converting blob to base64...');
+        const arrayBuffer = await blob.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        console.log('✅ DEBUG: Base64 conversion complete, length:', base64.length);
+
+        const payload = {
           audio: base64,
           format: blob.type,
           timestamp: new Date().toISOString(),
           filename: `recording-${Date.now()}.wav`
-        })
-      });
+        };
 
-      const responseData = await response.json();
-      
-      this.serverResponse.set({
-        success: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        data: responseData,
-        timestamp: Date.now()
-      });
+        console.log('📤 DEBUG: Sending payload:', {
+          format: payload.format,
+          timestamp: payload.timestamp,
+          filename: payload.filename,
+          audioLength: payload.audio.length
+        });
 
-    } catch (error) {
-      console.error('Error sending to server:', error);
-      this.serverResponse.set({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: Date.now()
-      });
-    } finally {
-      this.isSending.set(false);
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+
+        console.log('📥 DEBUG: Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+
+        let responseData;
+        try {
+          responseData = await response.json();
+          console.log('📋 DEBUG: Response data:', responseData);
+        } catch (jsonError) {
+          console.error('❌ DEBUG: Failed to parse JSON response:', jsonError);
+          const textResponse = await response.text();
+          console.log('📄 DEBUG: Raw text response:', textResponse);
+          responseData = { error: 'Invalid JSON response', raw: textResponse };
+        }
+        
+        this.serverResponse.set({
+          success: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData,
+          endpoint: endpoint,
+          timestamp: Date.now()
+        });
+
+        console.log(`✅ DEBUG: Success with endpoint: ${endpoint}`);
+        this.isSending.set(false);
+        return; // Sukces - wychodzimy z pętli
+
+      } catch (error) {
+        console.error(`❌ DEBUG: Error with endpoint ${endpoint}:`, error);
+        console.error('🔍 DEBUG: Error details:', {
+          name: error instanceof Error ? error.name : 'Unknown',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        
+        // Jeśli to ostatni endpoint, pokazujemy błąd
+        if (endpoint === endpoints[endpoints.length - 1]) {
+          this.serverResponse.set({
+            success: false,
+            error: `All endpoints failed. Last error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            endpoints_tried: endpoints,
+            timestamp: Date.now()
+          });
+        }
+        // Kontynuujemy z następnym endpointem
+      }
     }
+    
+    console.log('🏁 DEBUG: All endpoints failed');
+    this.isSending.set(false);
   }
 
   async onPick(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
+      console.log('📱 DEBUG: File selected:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
       await this.audio.setRecordingFromFile(file);
       this.audioUrl.set(URL.createObjectURL(file));
       await this.audio.saveLastRecordingToTimeline();
     }
   }
 
+  openNativeRecording() {
+    console.log('📱 DEBUG: Opening native recording...');
+    
+    // Dla różnych urządzeń używamy różnych podejść
+    if (this.isMobileDevice()) {
+      // Na mobile próbujemy bezpośrednio otworzyć nagrywanie
+      try {
+        // Tworzymy nowy input z odpowiednimi atrybutami
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/*';
+        input.capture = 'microphone';
+        
+        // Dodajemy event listener
+        input.addEventListener('change', (event) => {
+          this.onPick(event);
+        });
+        
+        // Wywołujemy click
+        input.click();
+        
+        console.log('📱 DEBUG: Native recording input created and clicked');
+      } catch (error) {
+        console.error('❌ DEBUG: Error opening native recording:', error);
+        // Fallback do oryginalnego input
+        const originalInput = document.querySelector('.fallback-input') as HTMLInputElement;
+        if (originalInput) {
+          originalInput.click();
+        }
+      }
+    } else {
+      // Na desktop używamy oryginalnego input
+      const originalInput = document.querySelector('.fallback-input') as HTMLInputElement;
+      if (originalInput) {
+        originalInput.click();
+      }
+    }
+  }
+
   isMobileDevice(): boolean {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera || '';
-    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    
+    console.log('📱 DEBUG: Device detection:', {
+      userAgent: userAgent,
+      isMobile: isMobile,
+      isAndroid: /android/i.test(userAgent),
+      isPixel: /pixel/i.test(userAgent)
+    });
+    
+    return isMobile;
   }
 
   formatResponse(response: any): string {
