@@ -9,7 +9,6 @@ export class AudioService {
   private chunks: Blob[] = [];
   lastRecording = signal<Blob | null>(null);
   private recorderStartTs: number | null = null;
-
   private timeline = inject(TimelineService);
   private storage = inject(StorageService);
 
@@ -18,12 +17,35 @@ export class AudioService {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error('getUserMedia unsupported');
     }
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    this.mediaRecorder = new MediaRecorder(this.mediaStream);
+    
+    // VoIP standard: 16kHz mono, 16-bit for optimal voice quality
+    const constraints = {
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 16000,  // 16kHz - standard VoIP
+        channelCount: 1,    // Mono - standard VoIP
+        sampleSize: 16      // 16-bit - standard VoIP
+      }
+    };
+    
+    this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    // Use VoIP-optimized format
+    const mimeType = MediaRecorder.isTypeSupported('audio/wav') 
+      ? 'audio/wav' 
+      : 'audio/webm;codecs=opus';
+    
+    this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+      mimeType: mimeType,
+      audioBitsPerSecond: 128000 // 128kbps - standard VoIP
+    });
+    
     this.chunks = [];
     this.mediaRecorder.ondataavailable = e => this.chunks.push(e.data);
     this.mediaRecorder.onstop = () => {
-      const blob = new Blob(this.chunks, { type: 'audio/webm' });
+      const blob = new Blob(this.chunks, { type: mimeType });
       this.lastRecording.set(blob);
       this.mediaStream?.getTracks().forEach(t => t.stop());
       this.mediaStream = null;
@@ -66,7 +88,8 @@ export class AudioService {
 
   async setRecordingFromFile(file: File){
     const arrayBuffer = await file.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: file.type || 'audio/webm' });
+    // Convert to VoIP format if needed, or keep original format
+    const blob = new Blob([arrayBuffer], { type: file.type || 'audio/wav' });
     this.lastRecording.set(blob);
   }
 }
