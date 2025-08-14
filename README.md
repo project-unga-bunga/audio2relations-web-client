@@ -1,6 +1,23 @@
 # Audio Recorder App
 
+[![CI - Code Quality & Testing](https://github.com/project-unga-bunga/audio2relations-web-client/workflows/CI%20-%20Code%20Quality%20%26%20Testing/badge.svg)](https://github.com/project-unga-bunga/audio2relations-web-client/actions/workflows/ci.yml)
+[![Firebase Deploy](https://github.com/project-unga-bunga/audio2relations-web-client/workflows/Deploy%20to%20Firebase%20App%20Distribution/badge.svg)](https://github.com/project-unga-bunga/audio2relations-web-client/actions/workflows/firebase-deploy.yml)
+[![Release](https://github.com/project-unga-bunga/audio2relations-web-client/workflows/Release/badge.svg)](https://github.com/project-unga-bunga/audio2relations-web-client/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Angular](https://img.shields.io/badge/Angular-DD0031?style=flat&logo=angular&logoColor=white)](https://angular.io/)
+[![Capacitor](https://img.shields.io/badge/Capacitor-119EFF?style=flat&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
+
 A simple Angular Capacitor application for recording audio with a clean, modern UI.
+
+## 📊 Pipeline Status
+
+The badges above show the current status of our CI/CD pipelines:
+
+- **CI - Code Quality & Testing**: Runs on every push/PR to ensure code quality, run tests, and check security
+- **Firebase Deploy**: Automatically deploys to Firebase App Distribution for testing
+- **Release**: Handles the release process and creates GitHub releases with APKs
+- **License**: MIT license badge
+- **Tech Stack**: Angular and Capacitor framework badges
 
 ## Features
 
