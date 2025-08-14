@@ -2,11 +2,12 @@ import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MiniChartComponent } from './mini-chart.component';
 import { TimelineService } from '../../services/timeline.service';
+import { VersionDisplayComponent } from '../../components/version-display.component';
 
 @Component({
   standalone: true,
   selector: 'app-dashboard-page',
-  imports: [CommonModule, MiniChartComponent],
+  imports: [CommonModule, MiniChartComponent, VersionDisplayComponent],
   template: `
     <h2>Dashboard</h2>
     <div class="cards">
@@ -22,12 +23,16 @@ import { TimelineService } from '../../services/timeline.service';
     <div class="chart">
       <app-mini-chart [data]="histogram()"></app-mini-chart>
     </div>
+    <div class="version-info">
+      <app-version-display displayMode="compact"></app-version-display>
+    </div>
   `,
   styles: [`
     .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
     .card{border:1px solid #eee;border-radius:8px;padding:12px}
     .title{color:#666}
     .value{font-size:24px;font-weight:700}
+    .version-info{text-align:center;margin-top:20px;padding:10px;border-top:1px solid #eee}
   `]
 })
 export class DashboardPage {
