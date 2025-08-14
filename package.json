@@ -11,7 +11,15 @@
     "cap:sync": "npx cap sync",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
-    "deploy": "npm run build && npm run cap:sync"
+    "deploy": "npm run build && npm run cap:sync",
+    "build:android": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug && cd ..",
+    "build:android:release": "npm run build && npx cap sync && cd android && ./gradlew assembleRelease && cd ..",
+    "deploy:firebase": "npm run build:android:release && firebase appdistribution:distribute android/app/build/outputs/apk/release/app-release.apk --app $FIREBASE_APP_ID --groups testers",
+    "lint": "ng lint",
+    "format": "prettier --write \"src/**/*.{ts,html,css,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,css,json}\"",
+    "test:ci": "npm test -- --watch=false --browsers=ChromeHeadless --code-coverage",
+    "build:ci": "npm run build && npm run build:prod"
   },
   "prettier": {
     "printWidth": 100,
@@ -42,16 +50,24 @@
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "^20.1.1",
+    "@angular-eslint/eslint-plugin": "^20.1.1",
+    "@angular-eslint/eslint-plugin-template": "^20.1.1",
+    "@angular-eslint/schematics": "^20.1.1",
+    "@angular-eslint/template-parser": "^20.1.1",
     "@angular/build": "^20.1.6",
     "@angular/cli": "^20.1.6",
     "@angular/compiler-cli": "^20.1.0",
     "@types/jasmine": "~5.1.0",
+    "eslint": "^9.33.0",
+    "eslint-plugin-import": "^2.32.0",
     "jasmine-core": "~5.8.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "prettier": "^3.6.2",
     "typescript": "~5.8.2"
   }
 }
