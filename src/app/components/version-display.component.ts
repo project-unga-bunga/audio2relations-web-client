@@ -147,9 +147,21 @@ export class VersionDisplayComponent implements OnInit {
   @Input() displayMode: 'compact' | 'detailed' | 'firebase' | 'badge' = 'compact';
   @Input() showEnvironment: boolean = false;
   
-  versionInfo!: VersionInfo;
+  versionInfo: VersionInfo;
   
-  constructor(private versionService: VersionService) {}
+  constructor(private versionService: VersionService) {
+    // Initialize with default values to satisfy TypeScript strict mode
+    this.versionInfo = {
+      version: '0.0.0',
+      buildNumber: 0,
+      versionCode: 0,
+      buildDate: new Date().toISOString(),
+      gitCommit: 'unknown',
+      environment: 'development',
+      appId: 'com.audio2relation.app',
+      appName: 'audio2relations-web-client'
+    };
+  }
   
   ngOnInit() {
     this.versionInfo = this.versionService.getVersionInfo();
