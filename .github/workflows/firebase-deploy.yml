@@ -42,6 +42,15 @@ jobs:
     - name: Build Angular app
       run: npm run build
       
+    - name: Verify Angular build output
+      run: |
+        echo "📁 Checking Angular build output:"
+        ls -la dist/
+        echo "📱 Audio recorder build:"
+        ls -la dist/audio-recorder/ || echo "Audio recorder directory not found"
+        echo "🌐 Browser build:"
+        ls -la dist/audio-recorder/browser/ || echo "Browser directory not found"
+        
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -79,9 +88,9 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
       with:
-        api-level: '33'
-        build-tools: '33.0.0'
-        ndk-version: '25.1.8937393'
+        api-level: '34'
+        build-tools: '34.0.0'
+        ndk-version: '25.2.9519653'
         cmake-version: '3.22.1'
         
     - name: Cache Gradle packages
@@ -107,17 +116,65 @@ jobs:
     - name: Sync Capacitor
       run: npx cap sync
       
+    - name: Verify Capacitor sync
+      run: |
+        echo "📱 Verifying Capacitor sync:"
+        echo "Android project exists:"
+        ls -la android/ || echo "❌ Android directory not found!"
+        echo "Android app exists:"
+        ls -la android/app/ || echo "❌ Android app directory not found!"
+        echo "Android manifest:"
+        ls -la android/app/src/main/AndroidManifest.xml || echo "❌ AndroidManifest.xml not found!"
+        
+    - name: Check Android directory structure
+      run: |
+        echo "📁 Android project structure:"
+        ls -la android/
+        echo "📱 App directory:"
+        ls -la android/app/
+        echo "🔨 Build directory:"
+        ls -la android/app/build/ || echo "Build directory doesn't exist yet"
+        
+    - name: Verify Gradle setup
+      run: |
+        cd android
+        echo "🔧 Checking Gradle setup:"
+        ./gradlew --version
+        echo "📋 Available tasks:"
+        ./gradlew tasks --all | grep -E "(assemble|build)" || echo "No assemble tasks found"
+        cd ..
+        
     - name: Build Debug APK
       run: |
         cd android
-        ./gradlew assembleDebug --no-daemon --parallel
+        echo "🔨 Building Debug APK..."
+        ./gradlew assembleDebug --no-daemon --parallel --info
+        echo "✅ Debug build completed"
         cd ..
         
     - name: Build Release APK
       run: |
         cd android
-        ./gradlew assembleRelease --no-daemon --parallel
+        echo "🔨 Building Release APK..."
+        ./gradlew assembleRelease --no-daemon --parallel --info
+        echo "✅ Release build completed"
         cd ..
+        
+    - name: Verify APK files exist
+      run: |
+        echo "🔍 Verifying APK files were built successfully:"
+        echo "Debug APK:"
+        ls -la android/app/build/outputs/apk/debug/app-debug.apk || echo "❌ Debug APK not found!"
+        echo "Release APK:"
+        ls -la android/app/build/outputs/apk/release/app-release.apk || echo "❌ Release APK not found!"
+        
+        # Check file sizes
+        if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+          echo "✅ Debug APK size: $(du -h android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)"
+        fi
+        if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+          echo "✅ Release APK size: $(du -h android/app/build/outputs/apk/release/app-release.apk | cut -f1)"
+        fi
         
     - name: Upload APK artifacts
       uses: actions/upload-artifact@v4
@@ -140,7 +197,16 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: android-apks
-        path: android/app/build/outputs/apk/
+        path: ./
+        
+    - name: List downloaded files
+      run: |
+        echo "📁 Checking downloaded APK files:"
+        find . -name "*.apk" -type f
+        ls -la
+        echo "📱 APK files found:"
+        ls -la android/app/build/outputs/apk/debug/ || echo "Debug APK directory not found"
+        ls -la android/app/build/outputs/apk/release/ || echo "Release APK directory not found"
         
     - name: Deploy Debug APK to Firebase
       uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -148,17 +214,17 @@ jobs:
         appId: ${{ secrets.FIREBASE_APP_ID }}
         serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         groups: ${{ github.event.inputs.environment || 'testers' }}
-        file: android/app/build/outputs/apk/debug/app-debug.apk
+        file: app-debug.apk
         releaseNotes: |
           🚀 Debug Build - Audio Recorder App
           
           📱 Build Info:
           - Commit: ${{ github.sha }}
           - Branch: ${{ github.ref_name }}
-          - Build Time: ${{ github.event.head_commit.timestamp }}
+          - Build Time: ${{ github.event.head_commit.timestamp || github.run_started_at }}
           - Workflow: ${{ github.workflow }}
           
-          🔧 Changes: ${{ github.event.head_commit.message }}
+          🔧 Changes: ${{ github.event.head_commit.message || 'Automated build' }}
           
     - name: Deploy Release APK to Firebase
       uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -166,17 +232,17 @@ jobs:
         appId: ${{ secrets.FIREBASE_APP_ID }}
         serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         groups: ${{ github.event.inputs.environment || 'testers' }}
-        file: android/app/build/outputs/apk/release/app-release.apk
+        file: app-release.apk
         releaseNotes: |
           🚀 Release Build - Audio Recorder App
           
           📱 Build Info:
           - Commit: ${{ github.sha }}
           - Branch: ${{ github.ref_name }}
-          - Build Time: ${{ github.event.head_commit.timestamp }}
+          - Build Time: ${{ github.event.head_commit.timestamp || github.run_started_at }}
           - Workflow: ${{ github.workflow }}
           
-          🔧 Changes: ${{ github.event.head_commit.message }}
+          🔧 Changes: ${{ github.event.head_commit.message || 'Automated build' }}
           
     - name: Comment PR with download link
       if: github.event_name == 'pull_request'
