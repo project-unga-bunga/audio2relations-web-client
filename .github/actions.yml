@@ -1,0 +1,76 @@
+# GitHub Actions Configuration
+# This file contains reusable actions and configurations
+
+# Reusable workflow for building Android APKs
+name: Build Android APK
+description: Builds Android APK from Angular app
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '18'
+  java-version:
+    description: 'Java version to use'
+    required: false
+    default: '17'
+  android-api-level:
+    description: 'Android API level'
+    required: false
+    default: '33'
+  build-type:
+    description: 'Build type (debug or release)'
+    required: false
+    default: 'debug'
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      shell: bash
+      
+    - name: Build Angular app
+      run: npm run build
+      shell: bash
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: ${{ inputs.java-version }}
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+      with:
+        api-level: ${{ inputs.android-api-level }}
+        build-tools: '33.0.0'
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Sync Capacitor
+      run: npx cap sync
+      shell: bash
+      
+    - name: Build APK
+      run: |
+        cd android
+        if [ "${{ inputs.build-type }}" = "release" ]; then
+          ./gradlew assembleRelease --no-daemon --parallel
+        else
+          ./gradlew assembleDebug --no-daemon --parallel
+        fi
+        cd ..
+      shell: bash

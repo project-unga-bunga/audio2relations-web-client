@@ -21,6 +21,11 @@ import { SensorsService } from '../../services/sensors.service';
         <div>Lng: {{ geo().lng?.toFixed(5) }}</div>
         <div>Acc: {{ geo().accuracy }}</div>
       </div>
+      <div>
+        <h3>Device</h3>
+        <div>Platform: {{ device().platform }}</div>
+        <div>User-Agent: {{ device().userAgent }}</div>
+      </div>
     </div>
   `,
   styles: [`
@@ -32,6 +37,7 @@ export class SensorsPage {
   private sensors = inject(SensorsService);
   gyro = this.sensors.gyro;
   geo = this.sensors.geo;
+  device = this.sensors.device;
 
   constructor(){
     this.sensors.start();

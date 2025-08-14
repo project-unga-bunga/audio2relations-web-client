@@ -1,0 +1,89 @@
+name: Create Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build Angular app
+      run: npm run build
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+      with:
+        api-level: '33'
+        build-tools: '33.0.0'
+        
+    - name: Sync Capacitor
+      run: npx cap sync
+      
+    - name: Build Release APK
+      run: |
+        cd android
+        ./gradlew assembleRelease --no-daemon
+        cd ..
+        
+    - name: Sign APK (if keystore exists)
+      uses: r0adkll/sign-android-release@v1
+      id: sign_app
+      with:
+        releaseDirectory: android/app/build/outputs/apk/release
+        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+        alias: ${{ secrets.ANDROID_ALIAS }}
+        keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        
+    - name: Upload APK to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: android/app/build/outputs/apk/release/app-release.apk
+        asset_name: audio-recorder-${{ github.event.release.tag_name }}.apk
+        asset_content_type: application/vnd.android.package-archive
+        
+    - name: Deploy to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ secrets.FIREBASE_APP_ID }}
+        serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        groups: testers
+        file: android/app/build/outputs/apk/release/app-release.apk
+        releaseNotes: |
+          🚀 Release: ${{ github.event.release.tag_name }}
+          
+          📱 Audio Recorder App
+          
+          📝 Release Notes:
+          ${{ github.event.release.body }}
+          
+          🔗 GitHub Release: ${{ github.event.release.html_url }}
+          
+    - name: Notify success
+      run: |
+        echo "✅ Release created successfully!"
+        echo "📱 APK uploaded to GitHub release"
+        echo "🔥 APK deployed to Firebase App Distribution"
+        echo "🏷️ Tag: ${{ github.event.release.tag_name }}"

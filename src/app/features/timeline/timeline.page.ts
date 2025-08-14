@@ -1,6 +1,7 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { TimelineService } from '../../services/timeline.service';
+import { StorageService } from '../../services/storage.service';
 
 @Component({
   standalone: true,
@@ -14,8 +15,8 @@ import { TimelineService } from '../../services/timeline.service';
         <span class="time">{{ e.timestamp | date:'short' }}</span>
         <strong>{{ e.type }}</strong>
         <button (click)="remove(e.id)">Delete</button>
-        <div class="payload" *ngIf="e.type === 'audio' && e.payload?.blob">
-          <audio [src]="createObjectURL(e.payload.blob)" controls></audio>
+        <div class="payload" *ngIf="e.type === 'audio' && e.payload?.blobRef">
+          <audio [src]="audioUrlMap[e.payload.blobRef]" controls></audio>
         </div>
       </li>
     </ul>
@@ -28,8 +29,10 @@ import { TimelineService } from '../../services/timeline.service';
 })
 export class TimelinePage {
   private timeline = inject(TimelineService);
+  private storage = inject(StorageService);
   events = computed(() => this.timeline.events());
   private subAdded = false;
+  audioUrlMap: Record<string, string> = {};
 
   constructor(){
     if (!this.subAdded) {
@@ -38,14 +41,29 @@ export class TimelinePage {
         this.timeline.addEvent({ id: crypto.randomUUID(), type: 'marker', timestamp: Date.now(), payload: { note: 'Quick marker' } });
       });
     }
+    // Warm up audio URLs
+    this.refreshAudioUrls();
+    window.addEventListener('timeline-refresh', () => this.refreshAudioUrls());
+
+    // React to events() changes and refresh audio URLs
+    effect(() => {
+      // touch signal
+      const _ = this.events();
+      this.refreshAudioUrls();
+    });
   }
 
   remove(id: string) {
     this.timeline.removeEvent(id);
   }
 
-  createObjectURL(blob: Blob): string {
-    return URL.createObjectURL(blob);
+  async refreshAudioUrls(){
+    for (const e of this.events()){
+      if (e.type === 'audio' && e.payload?.blobRef){
+        const url = await this.storage.getBlobUrl(e.payload.blobRef);
+        if (url) this.audioUrlMap[e.payload.blobRef] = url;
+      }
+    }
   }
 }
 

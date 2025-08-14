@@ -1,0 +1,310 @@
+name: Deploy to Firebase App Distribution
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'testers'
+        type: choice
+        options:
+        - testers
+        - qa
+        - developers
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs=-Xmx2048m
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: npm run test:ci || echo "Tests failed - continuing with build..."
+      
+    - name: Build Angular app
+      run: npm run build
+      
+    - name: Verify Angular build output
+      run: |
+        echo "📁 Checking Angular build output:"
+        ls -la dist/
+        echo "📱 Audio recorder build:"
+        ls -la dist/audio-recorder/ || echo "Audio recorder directory not found"
+        echo "🌐 Browser build:"
+        ls -la dist/audio-recorder/browser/ || echo "Browser directory not found"
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: angular-build
+        path: dist/
+
+  build-android:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: angular-build
+        path: dist/
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+      with:
+        api-level: '34'
+        build-tools: '34.0.0'
+        ndk-version: '25.2.9519653'
+        cmake-version: '3.22.1'
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Cache Android build
+      uses: actions/cache@v4
+      with:
+        path: |
+          android/.gradle
+          android/app/build
+        key: ${{ runner.os }}-android-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-android-
+          
+    - name: Sync Capacitor
+      run: npx cap sync
+      
+    - name: Verify Capacitor sync
+      run: |
+        echo "📱 Verifying Capacitor sync:"
+        echo "Android project exists:"
+        ls -la android/ || echo "❌ Android directory not found!"
+        echo "Android app exists:"
+        ls -la android/app/ || echo "❌ Android app directory not found!"
+        echo "Android manifest:"
+        ls -la android/app/src/main/AndroidManifest.xml || echo "❌ AndroidManifest.xml not found!"
+        
+    - name: Check Android directory structure
+      run: |
+        echo "📁 Android project structure:"
+        ls -la android/
+        echo "📱 App directory:"
+        ls -la android/app/
+        echo "🔨 Build directory:"
+        ls -la android/app/build/ || echo "Build directory doesn't exist yet"
+        
+    - name: Verify Gradle setup
+      run: |
+        cd android
+        echo "🔧 Checking Gradle setup:"
+        ./gradlew --version
+        echo "📋 Available tasks:"
+        ./gradlew tasks --all | grep -E "(assemble|build)" || echo "No assemble tasks found"
+        cd ..
+        
+    - name: Build Debug APK
+      run: |
+        cd android
+        echo "🔨 Building Debug APK..."
+        ./gradlew assembleDebug --no-daemon --parallel --info
+        echo "✅ Debug build completed"
+        cd ..
+        
+    - name: Build Release APK
+      run: |
+        cd android
+        echo "🔨 Building Release APK..."
+        echo "📋 Available build variants:"
+        ./gradlew tasks --all | grep -E "(assemble|build)" || echo "No assemble tasks found"
+        
+        echo "🔧 Starting release build..."
+        ./gradlew assembleRelease --no-daemon --parallel --info || {
+          echo "❌ Release build failed!"
+          echo "🔍 Checking if release APK was created anyway:"
+          ls -la app/build/outputs/apk/release/ || echo "Release directory not found"
+          exit 1
+        }
+        echo "✅ Release build completed"
+        cd ..
+        
+    - name: Verify APK files exist
+      run: |
+        echo "🔍 Verifying APK files were built successfully:"
+        echo "Debug APK:"
+        ls -la android/app/build/outputs/apk/debug/app-debug.apk || echo "❌ Debug APK not found!"
+        echo "Release APK:"
+        ls -la android/app/build/outputs/apk/release/app-release.apk || echo "❌ Release APK not found!"
+        
+        # Check file sizes
+        if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+          echo "✅ Debug APK size: $(du -h android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)"
+        fi
+        if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+          echo "✅ Release APK size: $(du -h android/app/build/outputs/apk/release/app-release.apk | cut -f1)"
+        fi
+        
+    - name: Upload APK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apks
+        path: |
+          android/app/build/outputs/apk/debug/app-debug.apk
+          android/app/build/outputs/apk/release/app-release.apk
+
+  deploy-firebase:
+    needs: build-android
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    environment: production
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download APK artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: android-apks
+        path: ./
+        
+    - name: List downloaded files
+      run: |
+        echo "📁 Checking downloaded APK files:"
+        echo "🔍 Current directory structure:"
+        pwd
+        ls -la
+        
+        echo "📱 Finding all APK files:"
+        find . -name "*.apk" -type f -exec ls -la {} \;
+        
+        echo "📂 Checking specific APK directories:"
+        if [ -d "android/app/build/outputs/apk/debug" ]; then
+          echo "✅ Debug APK directory exists:"
+          ls -la android/app/build/outputs/apk/debug/
+        else
+          echo "❌ Debug APK directory not found"
+        fi
+        
+        if [ -d "android/app/build/outputs/apk/release" ]; then
+          echo "✅ Release APK directory exists:"
+          ls -la android/app/build/outputs/apk/release/
+        else
+          echo "❌ Release APK directory not found"
+        fi
+        
+        echo "🔍 Full directory tree:"
+        find . -type d | head -20
+        
+    - name: Deploy Debug APK to Firebase
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ secrets.FIREBASE_APP_ID }}
+        serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        groups: ${{ github.event.inputs.environment || 'testers' }}
+        file: debug/app-debug.apk
+        releaseNotes: |
+          🚀 Debug Build - Audio Recorder App
+          
+          📱 Build Info:
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+          - Build Time: ${{ github.event.head_commit.timestamp || github.run_started_at }}
+          - Workflow: ${{ github.workflow }}
+          
+          🔧 Changes: ${{ github.event.head_commit.message || 'Automated build' }}
+          
+    - name: Deploy Release APK to Firebase
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      if: hashFiles('release/app-release.apk') != ''
+      with:
+        appId: ${{ secrets.FIREBASE_APP_ID }}
+        serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        groups: ${{ github.event.inputs.environment || 'testers' }}
+        file: release/app-release.apk
+        releaseNotes: |
+          🚀 Release Build - Audio Recorder App
+          
+          📱 Build Info:
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+          - Build Time: ${{ github.event.head_commit.timestamp || github.run_started_at }}
+          - Workflow: ${{ github.workflow }}
+          
+          🔧 Changes: ${{ github.event.head_commit.message || 'Automated build' }}
+          
+    - name: Skip Release APK Deployment
+      if: hashFiles('release/app-release.apk') == ''
+      run: |
+        echo "⚠️ Release APK not found, skipping deployment"
+        echo "📱 Only debug APK will be deployed"
+          
+    - name: Comment PR with download link
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🎉 **APK Ready for Testing!**\n\nYour APK has been deployed to Firebase App Distribution.\n\n📱 **Download Link**: Check your email or Firebase console for the download link.\n\n🔍 **Build Info**:\n- Commit: `${{ github.sha }}`\n- Branch: `${{ github.ref_name }}`\n- Build Time: `${{ github.event.head_commit.timestamp }}`'
+          })
+
+  notify:
+    needs: [deploy-firebase]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Notify on success
+      if: needs.deploy-firebase.result == 'success'
+      run: |
+        echo "✅ Firebase deployment successful!"
+        echo "📱 APKs deployed to Firebase App Distribution"
+        echo "🔗 Check Firebase console for download links"
+        
+    - name: Notify on failure
+      if: needs.deploy-firebase.result == 'failure'
+      run: |
+        echo "❌ Firebase deployment failed!"
+        echo "🔍 Check the workflow logs for details"

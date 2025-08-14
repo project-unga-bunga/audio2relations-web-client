@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.audio2relation.app',
   appName: 'audio2relations-web-client',
   webDir: 'dist/audio-recorder/browser',
+  server: {
+    androidScheme: 'https'
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 0

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "436143522639",
+    "project_id": "audio2relations-app",
+    "storage_bucket": "audio2relations-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:436143522639:android:db7298d0eaf13d260a3b3a",
+        "android_client_info": {
+          "package_name": "com.audio2relation.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjJAewIOXblMOVu4vs7aBIPado88KEyC4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
