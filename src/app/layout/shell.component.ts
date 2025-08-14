@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { AudioService } from '../services/audio.service';
 
 @Component({
   selector: 'app-shell',
@@ -52,19 +53,21 @@ import { RouterModule } from '@angular/router';
 })
 export class ShellComponent {
   quickMenuOpen = false;
+  private router = inject(Router);
+  private audio = inject(AudioService);
 
   toggleQuickMenu() {
     this.quickMenuOpen = !this.quickMenuOpen;
   }
 
   go(path: string) {
-    window.location.hash = '';
-    window.history.pushState({}, '', path);
-    dispatchEvent(new PopStateEvent('popstate'));
+    this.router.navigateByUrl(path);
     this.quickMenuOpen = false;
   }
 
   quickRecord(){
+    // Attempt to start immediately, then navigate
+    this.audio.startRecording().catch(() => {});
     this.go('/record');
   }
 
