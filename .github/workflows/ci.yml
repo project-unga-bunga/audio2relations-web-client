@@ -77,6 +77,13 @@ jobs:
     - name: Build production
       run: npm run build:prod || echo "Production build failed - continuing..."
       
+    - name: Verify build output
+      run: |
+        echo "Build output structure:"
+        ls -la dist/
+        ls -la dist/audio-recorder/
+        ls -la dist/audio-recorder/browser/
+      
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -117,7 +124,16 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: build-artifacts
-        path: dist/
+        path: ./
+      
+    - name: Verify downloaded artifacts
+      run: |
+        echo "Downloaded artifacts structure:"
+        ls -la dist/
+        ls -la dist/audio-recorder/
+        ls -la dist/audio-recorder/browser/
+        echo "Checking for index.html:"
+        ls -la dist/audio-recorder/browser/index.html || echo "index.html not found!"
       
     - name: Setup Node.js
       uses: actions/setup-node@v4
