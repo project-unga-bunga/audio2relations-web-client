@@ -5,6 +5,7 @@ export class TranscriptionService {
   isActive = signal(false);
   text = signal('');
   private recognition: any;
+  private finalText = '';
 
   constructor(){
     const w: any = window as any;
@@ -21,7 +22,9 @@ export class TranscriptionService {
           const t = event.results[i][0].transcript;
           if (event.results[i].isFinal) final += t; else interim += t;
         }
-        this.text.set((final + ' ' + interim).trim());
+        if (final) this.finalText += (this.finalText ? ' ' : '') + final.trim();
+        const combined = (this.finalText + ' ' + interim).trim();
+        this.text.set(combined);
       };
       this.recognition.onend = () => this.isActive.set(false);
     }
