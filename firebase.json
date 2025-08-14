@@ -1,7 +1,7 @@
 {
   "appdistribution": {
-    "app": "your-firebase-app-id-here",
+    "app": "1:436143522639:android:db7298d0eaf13d260a3b3a",
     "groups": "testers",
-    "release_notes": "Auto-deployed from GitHub Actions - Audio Recorder App"
+    "releaseNotes": "Auto-deployed from GitHub Actions - Audio Recorder App"
   }
 }
