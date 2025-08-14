@@ -68,10 +68,7 @@ This document explains the complete GitHub Actions setup for your Audio Recorder
 }
 ```
 
-### **Dependabot** (`.github/dependabot.yml`)
-- 🔄 **Weekly updates** for npm, GitHub Actions, Gradle
-- 🏷️ **Automatic labeling** and assignment
-- 🚫 **Smart ignores** for major Angular/Capacitor updates
+
 
 ## 🔐 **Required Secrets:**
 
