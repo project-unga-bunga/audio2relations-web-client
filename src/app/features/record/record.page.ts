@@ -31,6 +31,11 @@ import { StorageService } from '../../services/storage.service';
           <span class="btn-icon">💾</span>
           <span class="btn-text">Save to Timeline</span>
         </button>
+
+        <button class="control-btn send-btn" (click)="sendToEndpoint()" [disabled]="!audioUrl() || isSending()">
+          <span class="btn-icon">{{ isSending() ? '⏳' : '📤' }}</span>
+          <span class="btn-text">{{ isSending() ? 'Sending...' : 'Send to Server' }}</span>
+        </button>
       </div>
       
       <div class="fallback-section">
@@ -54,11 +59,36 @@ import { StorageService } from '../../services/storage.service';
         <h3 class="player-title">🎵 Audio Preview</h3>
         <audio [src]="audioUrl()" controls class="audio-element"></audio>
       </div>
+
+      <!-- Server Response Section -->
+      <div class="server-response" *ngIf="serverResponse()">
+        <div class="response-header">
+          <span class="response-icon">📡</span>
+          <h3 class="response-title">Server Response</h3>
+        </div>
+        <div class="response-content">
+          <div class="response-status" [class.success]="serverResponse()?.success" [class.error]="!serverResponse()?.success">
+            <span class="status-icon">{{ serverResponse()?.success ? '✅' : '❌' }}</span>
+            <span class="status-text">{{ serverResponse()?.success ? 'Success' : 'Error' }}</span>
+          </div>
+          <div class="response-data">
+            <pre class="response-json">{{ formatResponse(serverResponse()) }}</pre>
+          </div>
+          <div class="response-meta" *ngIf="serverResponse()?.timestamp">
+            <span class="meta-label">Response Time:</span>
+            <span class="meta-value">{{ formatTime(serverResponse()?.timestamp) }}</span>
+          </div>
+        </div>
+      </div>
       
       <div class="status-info">
         <div class="status-item" [class.recording]="isRecording()">
           <span class="status-icon">{{ isRecording() ? '🔴' : '⚪' }}</span>
           <span class="status-text">{{ isRecording() ? 'Recording in progress...' : 'Ready to record' }}</span>
+        </div>
+        <div class="status-item" *ngIf="isSending()">
+          <span class="status-icon">📤</span>
+          <span class="status-text">Sending to server...</span>
         </div>
       </div>
     </div>
@@ -151,6 +181,17 @@ import { StorageService } from '../../services/storage.service';
       border-color: #d4af37;
       background: linear-gradient(135deg, rgba(212, 175, 55, 0.3) 0%, rgba(212, 175, 55, 0.2) 100%);
       color: #d4af37;
+    }
+
+    .send-btn {
+      border-color: #6f42c1;
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.2) 0%, rgba(111, 66, 193, 0.1) 100%);
+    }
+    
+    .send-btn:hover:not(:disabled) {
+      border-color: #6f42c1;
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.3) 0%, rgba(111, 66, 193, 0.2) 100%);
+      color: #6f42c1;
     }
     
     .btn-icon {
@@ -250,6 +291,104 @@ import { StorageService } from '../../services/storage.service';
       width: 100%;
       border-radius: 8px;
     }
+
+    /* Server Response Section */
+    .server-response {
+      background: rgba(15, 20, 25, 0.8);
+      border: 2px solid #6f42c1;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .response-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .response-icon {
+      font-size: 1.5rem;
+    }
+
+    .response-title {
+      color: #6f42c1;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .response-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .response-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(220, 53, 69, 0.1);
+      border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+
+    .response-status.success {
+      background: rgba(40, 167, 69, 0.1);
+      border-color: rgba(40, 167, 69, 0.2);
+    }
+
+    .status-icon {
+      font-size: 1rem;
+    }
+
+    .status-text {
+      color: #dc3545;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .response-status.success .status-text {
+      color: #28a745;
+    }
+
+    .response-data {
+      background: rgba(15, 20, 25, 0.6);
+      border: 1px solid rgba(111, 66, 193, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .response-json {
+      color: #e6e6e6;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .response-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+    }
+
+    .meta-label {
+      color: #b0b0b0;
+      font-size: 0.9rem;
+    }
+
+    .meta-value {
+      color: #e6e6e6;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
     
     .status-info {
       background: rgba(15, 20, 25, 0.6);
@@ -262,6 +401,11 @@ import { StorageService } from '../../services/storage.service';
       align-items: center;
       gap: 12px;
       color: #e6e6e6;
+      margin-bottom: 8px;
+    }
+
+    .status-item:last-child {
+      margin-bottom: 0;
     }
     
     .status-item.recording {
@@ -302,6 +446,11 @@ import { StorageService } from '../../services/storage.service';
       .fallback-btn-text {
         font-size: 0.9rem;
       }
+
+      .response-json {
+        font-size: 0.8rem;
+        max-height: 150px;
+      }
     }
   `]
 })
@@ -309,7 +458,9 @@ export class RecordPage {
   private audio = inject(AudioService);
   private storage = inject(StorageService);
   isRecording = signal(false);
+  isSending = signal(false);
   audioUrl = signal<string>('');
+  serverResponse = signal<any>(null);
 
   async start() {
     // Na telefonie zawsze używamy natywnego mikrofonu
@@ -332,45 +483,96 @@ export class RecordPage {
     this.isRecording.set(false);
     if (blob) {
       this.audioUrl.set(URL.createObjectURL(blob));
-      // ensure timeline refresh after auto-save
-      setTimeout(() => window.dispatchEvent(new Event('timeline-refresh')), 0);
-      try {
-        const hasHandle = await this.storage.getExportDirHandle();
-        if (!hasHandle) {
-          await this.storage.requestDirectoryAccess();
-        }
-      } catch {}
     }
   }
 
   play() {
     const url = this.audioUrl();
-    if (url) new Audio(url).play();
+    if (url) {
+      new Audio(url).play();
+    }
   }
 
   async save() {
-    try {
-      const hasHandle = await this.storage.getExportDirHandle();
-      if (!hasHandle) {
-        await this.storage.requestDirectoryAccess();
-      }
-    } catch {}
     await this.audio.saveLastRecordingToTimeline();
-    window.dispatchEvent(new Event('timeline-refresh'));
   }
 
-  async onPick(ev: Event){
-    const input = ev.target as HTMLInputElement;
-    const file = input.files && input.files[0];
-    if (file){
+  async sendToEndpoint() {
+    const blob = this.audio.lastRecording();
+    if (!blob) {
+      console.warn('No recording to send');
+      return;
+    }
+
+    this.isSending.set(true);
+    this.serverResponse.set(null);
+
+    try {
+      // Convert blob to base64
+      const arrayBuffer = await blob.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      const response = await fetch('http://54.37.130.147/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          audio: base64,
+          format: blob.type,
+          timestamp: new Date().toISOString(),
+          filename: `recording-${Date.now()}.wav`
+        })
+      });
+
+      const responseData = await response.json();
+      
+      this.serverResponse.set({
+        success: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        data: responseData,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('Error sending to server:', error);
+      this.serverResponse.set({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: Date.now()
+      });
+    } finally {
+      this.isSending.set(false);
+    }
+  }
+
+  async onPick(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
       await this.audio.setRecordingFromFile(file);
       this.audioUrl.set(URL.createObjectURL(file));
+      await this.audio.saveLastRecordingToTimeline();
     }
   }
 
   isMobileDevice(): boolean {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera || '';
     return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+  }
+
+  formatResponse(response: any): string {
+    if (!response) return '';
+    return JSON.stringify(response, null, 2);
+  }
+
+  formatTime(timestamp: number): string {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   }
 }
 
