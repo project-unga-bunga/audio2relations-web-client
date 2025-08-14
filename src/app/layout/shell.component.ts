@@ -1,0 +1,82 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-shell',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  template: `
+    <div class="app-container">
+      <header class="topbar">
+        <nav class="tabs">
+          <a routerLink="/record" routerLinkActive="active">Record</a>
+          <a routerLink="/timeline" routerLinkActive="active">Timeline</a>
+          <a routerLink="/calendar" routerLinkActive="active">Calendar</a>
+          <a routerLink="/sensors" routerLinkActive="active">Sensors</a>
+          <a routerLink="/transcription" routerLinkActive="active">Transcription</a>
+          <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+          <a routerLink="/diagram" routerLinkActive="active">Diagram</a>
+        </nav>
+        <div class="auth">
+          <a routerLink="/login">Login</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <router-outlet />
+      </main>
+
+      <footer class="bottombar">
+        <button class="fab" (click)="toggleQuickMenu()">🎤</button>
+        <div class="quick-menu" *ngIf="quickMenuOpen">
+          <button (click)="quickRecord()">Quick Record</button>
+          <button (click)="voiceAssistant()">Voice Assistant</button>
+          <button (click)="addMarker()">Add Marker</button>
+        </div>
+      </footer>
+    </div>
+  `,
+  styles: [`
+    .app-container{display:flex;flex-direction:column;height:100vh}
+    .topbar{padding:8px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between}
+    .tabs{display:flex;gap:12px;flex-wrap:wrap}
+    .tabs a{padding:6px 10px;border-radius:6px;text-decoration:none;color:#333}
+    .tabs a.active{background:#efefef}
+    .content{flex:1;overflow:auto;padding:12px}
+    .bottombar{position:fixed;left:0;right:0;bottom:0;padding:12px;display:flex;justify-content:center}
+    .fab{width:64px;height:64px;border-radius:50%;background:#e74c3c;color:#fff;border:none;font-size:24px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+    .quick-menu{position:fixed;bottom:84px;left:0;right:0;display:flex;gap:8px;justify-content:center}
+    .quick-menu button{padding:8px 12px;border-radius:8px;border:1px solid #ddd;background:#fff}
+  `]
+})
+export class ShellComponent {
+  quickMenuOpen = false;
+
+  toggleQuickMenu() {
+    this.quickMenuOpen = !this.quickMenuOpen;
+  }
+
+  go(path: string) {
+    window.location.hash = '';
+    window.history.pushState({}, '', path);
+    dispatchEvent(new PopStateEvent('popstate'));
+    this.quickMenuOpen = false;
+  }
+
+  quickRecord(){
+    this.go('/record');
+  }
+
+  voiceAssistant(){
+    this.go('/transcription');
+  }
+
+  addMarker(){
+    const evt = new CustomEvent('quick-add-marker');
+    window.dispatchEvent(evt);
+    this.quickMenuOpen = false;
+  }
+}
+
+
