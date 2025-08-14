@@ -18,6 +18,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "outputPath": "dist/audio-recorder",
             "polyfills": [
               "zone.js"
             ],
@@ -87,6 +88,7 @@
               "zone.js/testing"
             ],
             "tsConfig": "tsconfig.spec.json",
+            "outputPath": "dist/audio-recorder-test",
             "assets": [
               {
                 "glob": "**/*",
