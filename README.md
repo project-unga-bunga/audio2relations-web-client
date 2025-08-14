@@ -7,6 +7,9 @@
 [![Angular](https://img.shields.io/badge/Angular-DD0031?style=flat&logo=angular&logoColor=white)](https://angular.io/)
 [![Capacitor](https://img.shields.io/badge/Capacitor-119EFF?style=flat&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
 
+https://console.firebase.google.com/project/audio2relations-app/appdistribution/app/android:com.audio2relation.app/releases?utm_source=firebase-tools
+
+
 A simple Angular Capacitor application for recording audio with a clean, modern UI.
 
 ## 📊 Pipeline Status
