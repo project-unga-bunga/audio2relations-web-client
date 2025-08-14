@@ -11,7 +11,15 @@
     "cap:sync": "npx cap sync",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
-    "deploy": "npm run build && npm run cap:sync"
+    "deploy": "npm run build && npm run cap:sync",
+    "build:android": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug && cd ..",
+    "build:android:release": "npm run build && npx cap sync && cd android && ./gradlew assembleRelease && cd ..",
+    "deploy:firebase": "npm run build:android:release && firebase appdistribution:distribute android/app/build/outputs/apk/release/app-release.apk --app $FIREBASE_APP_ID --groups testers",
+    "lint": "ng lint",
+    "format": "prettier --write \"src/**/*.{ts,html,css,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,css,json}\"",
+    "test:ci": "npm test -- --watch=false --browsers=ChromeHeadless --code-coverage",
+    "build:ci": "npm run build && npm run build:prod"
   },
   "prettier": {
     "printWidth": 100,
