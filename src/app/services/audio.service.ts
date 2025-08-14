@@ -41,6 +41,12 @@ export class AudioService {
       payload: { blob }
     });
   }
+
+  async setRecordingFromFile(file: File){
+    const arrayBuffer = await file.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: file.type || 'audio/webm' });
+    this.lastRecording.set(blob);
+  }
 }
 
 

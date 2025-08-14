@@ -12,9 +12,12 @@ export class SensorsService {
 
   start() {
     // Gyroscope / DeviceOrientation
-    if ('DeviceMotionEvent' in window && typeof (DeviceMotionEvent as any).requestPermission === 'function') {
-      (DeviceMotionEvent as any).requestPermission().catch(() => null);
-    }
+    // iOS permission prompt (no-op on Android/Web if unsupported)
+    try {
+      if ('DeviceMotionEvent' in window && typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+        (DeviceMotionEvent as any).requestPermission().catch(() => null);
+      }
+    } catch {}
     window.addEventListener('deviceorientation', this.orientationHandler = (e: any) => {
       this.gyro.set({ x: e.beta ?? 0, y: e.gamma ?? 0, z: e.alpha ?? 0 });
     });

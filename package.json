@@ -12,6 +12,9 @@
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
     "deploy": "npm run build && npm run cap:sync",
+    "start:lan": "ng serve --host 0.0.0.0 --port 4302",
+    "start:https": "ng serve --host 0.0.0.0 --port 4430 --ssl true --ssl-cert certs/dev.pem --ssl-key certs/dev-key.pem",
+    "mkcert:setup": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"New-Item -ItemType Directory -Force -Path certs | Out-Null; $ip=(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notmatch '^169\\.' -and $_.IPAddress -ne '127.0.0.1'} | Select-Object -First 1 -ExpandProperty IPAddress); mkcert -install; mkcert 127.0.0.1 ::1 0.0.0.0 $ip -key-file certs/dev-key.pem -cert-file certs/dev.pem\"",
     "build:android": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug && cd ..",
     "build:android:release": "npm run build && npx cap sync && cd android && ./gradlew assembleRelease && cd ..",
     "deploy:firebase": "npm run build:android:release && firebase appdistribution:distribute android/app/build/outputs/apk/release/app-release.apk --app $FIREBASE_APP_ID --groups testers",
@@ -35,6 +38,8 @@
   },
   "private": true,
   "dependencies": {
+    "@capacitor/filesystem": "^7.1.4",
+    "@angular/animations": "^20.1.7",
     "@angular/common": "^20.1.0",
     "@angular/compiler": "^20.1.0",
     "@angular/core": "^20.1.0",
