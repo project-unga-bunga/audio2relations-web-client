@@ -156,7 +156,16 @@ jobs:
       run: |
         cd android
         echo "🔨 Building Release APK..."
-        ./gradlew assembleRelease --no-daemon --parallel --info
+        echo "📋 Available build variants:"
+        ./gradlew tasks --all | grep -E "(assemble|build)" || echo "No assemble tasks found"
+        
+        echo "🔧 Starting release build..."
+        ./gradlew assembleRelease --no-daemon --parallel --info || {
+          echo "❌ Release build failed!"
+          echo "🔍 Checking if release APK was created anyway:"
+          ls -la app/build/outputs/apk/release/ || echo "Release directory not found"
+          exit 1
+        }
         echo "✅ Release build completed"
         cd ..
         
@@ -233,7 +242,7 @@ jobs:
         appId: ${{ secrets.FIREBASE_APP_ID }}
         serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         groups: ${{ github.event.inputs.environment || 'testers' }}
-        file: android/app/build/outputs/apk/debug/app-debug.apk
+        file: debug/app-debug.apk
         releaseNotes: |
           🚀 Debug Build - Audio Recorder App
           
@@ -247,11 +256,12 @@ jobs:
           
     - name: Deploy Release APK to Firebase
       uses: wzieba/Firebase-Distribution-Github-Action@v1
+      if: hashFiles('release/app-release.apk') != ''
       with:
         appId: ${{ secrets.FIREBASE_APP_ID }}
         serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         groups: ${{ github.event.inputs.environment || 'testers' }}
-        file: android/app/build/outputs/apk/release/app-release.apk
+        file: release/app-release.apk
         releaseNotes: |
           🚀 Release Build - Audio Recorder App
           
@@ -262,6 +272,12 @@ jobs:
           - Workflow: ${{ github.workflow }}
           
           🔧 Changes: ${{ github.event.head_commit.message || 'Automated build' }}
+          
+    - name: Skip Release APK Deployment
+      if: hashFiles('release/app-release.apk') == ''
+      run: |
+        echo "⚠️ Release APK not found, skipping deployment"
+        echo "📱 Only debug APK will be deployed"
           
     - name: Comment PR with download link
       if: github.event_name == 'pull_request'
