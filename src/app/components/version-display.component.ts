@@ -147,7 +147,7 @@ export class VersionDisplayComponent implements OnInit {
   @Input() displayMode: 'compact' | 'detailed' | 'firebase' | 'badge' = 'compact';
   @Input() showEnvironment: boolean = false;
   
-  versionInfo: VersionInfo;
+  versionInfo!: VersionInfo;
   
   constructor(private versionService: VersionService) {}
   
